@@ -2,7 +2,7 @@
   "name": "bibiBOT",
   "version": "1.0.0",
   "description": "Generated with Eclipse npm Tools",
-  "main": "index.js",
+  "main": "start.js",
   "scripts": {
     "test": "echo 'Error: no test specified' && exit 1"
   },
@@ -13,19 +13,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "actions-on-google": "^2.2.0",
-    "dateformat": "^3.0.3",
-    "dialogflow": "^0.6.0",
-    "dialogflow-fulfillment": "^0.5.0",
     "express": "^4.16.3",
-    "fs": "0.0.1-security",
-    "google-gax": "^0.18.0",
-    "lodash.merge": "^4.6.1",
-    "mime": "^2.3.1",
-    "mysql": "^2.16.0",
-    "protobufjs": "^6.8.8",
-    "uipath-orchestrator": "^1.0.2",
-    "urlencode": "^1.1.0",
-    "winston": "^3.0.0"
+    "googleapis": "^32.0.0",
+    "path": "^0.12.7"
   }
 }
