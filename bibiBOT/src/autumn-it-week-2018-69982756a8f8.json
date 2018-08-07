@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "autumn-it-week-2018",
+  "private_key_id": "69982756a8f8dde6ccbfd6e98b65c44e62dc28a8",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQCasHNzCiVtvcX7\naO35oLPlfWeYd5ibIG38f6nX3+X9AcYTu+5lf87BgoHMxyMY3cLkekxF6qltoLYI\nMwWg3uMEeQYY2DiV9WTa13bCAQRXCnSTdsQ/OkAQP+O9ZQ7AT9dr1NhriHQXUvtc\nkzw/wAM63qLyGV2ccFgCC0dJUmUzU4qZxKiSE99qLcyCNKfGnS42YVZXjuj5q5Zd\nlcl4uGUu2eLP8M9WF0zSo4Bw/FqGd6Pn/AGWPOvLXx3rX3OSXZsklQWp0pfQNe4X\ntOL2tgyW7s2bIPW6L32wy7rB31tzLZVc3ATbKGGS6uJ+UljM+kEyZPVPltgMpAF0\ntCUPgW3PAgMBAAECggEAOk4T1eKXJPwIqbBtMk/uPqu75m39qUrZ6fg8jk+oImsO\nu9V0D/HSfoGwZv0QL4k2smOeaCQA5H9U3VZN4srgComLUMX+3hb2gr3/1zQG7L/W\nHNcBNUvBZd6O+o4itz3g1pYNVMrD5x6x+7zLUsQO85uDE3mYHSUDJxIVNn/GAUf/\nqdF1/O5zPp1Gtx+qyUkPNoCM5hTNUlBi//hHhBZalnDaX/sqIvPpHLFUPbDfWhWc\nVMCA056mScc96rznu1QFt1cHo7k5j9t1aOmSA+QnbKz89mEKM8pk5E9iKFFLg93v\nlhB3g/s90zma7TSQEfml4PTSFUmEHTAQNBZHPY9moQKBgQDPm0qVCDQpJS3lv/u2\nrF2dTmYAmDReM17J1I/gDaFNPUDS+XJPX0Zy0H7Av5kDbjbp/OiZRjAa65L+n0Jk\n58QUmqeSZYdYF9+m35wFGc1RX98e22XnUefB5K25dijuN0bFrmse/PUnCmXqn4Ff\nnX1/1JNrZAOe3DSuvrreWXsYCQKBgQC+v188nZStnYT/MRZpVJNsLq8rUAgd4j48\nJZUETCqxwEX1Zvdw6kE2XKdxqmmG3Fd1o7l/cV0nrLsRKWMcIvbekr/hy+Gm42Bm\njfrdbuinzlK3uvaj/GkOPgfClCjM5ekjazOsrWaXomnVvscNeMKrU8zSq81T245B\nEg8hJ79dFwKBgQDLFhB5hZLxBQvHCm1EH41cSssBneLsm7gIHEW6WdsG4fq954Lp\nHjyeKFM2XrdiYbiaYOtwtPZt/zDGoCik6QwpU7jFP0iM5p3Eck3/t2PgTLbJSrp+\n9OKQDBHdsTcNAUncK2li4PU4gbV9NRer3zZbjCnCDg50otlub+oBhOsjcQKBgQCc\n2H22ORklPY47zKBSEiJ65VRSeCeEcyGbkYecFglRSfn8lSNILMdcrQlelLLbGtmr\nuOnyGkRwOD9GGFMPssxuLhsrztsIwJTnHz410FnsieJIg6sFIqs789OrsuptuWtg\nHWlLRvZCH2GJSashr7fa6zhTzsMyfinV5cSdDbL0FwKBgQCmRB8xNbp9eF2Qwk1d\ng0+qFDv4Eem+b1e93Wdjv/YcsaGsnTfWndI5gspRwABBtfTXANYmgYKl87m32aTx\ncG3MDhxGAPIJBXqw/X+BhKZFgEwM/DI5PadTFqpodqAVbAzpTnfJuid3xLlZA3Ti\nmsJsjarzSxwBBuXzfSfOBTVx/w==\n-----END PRIVATE KEY-----\n",
+  "client_email": "dev-813@autumn-it-week-2018.iam.gserviceaccount.com",
+  "client_id": "100215312952363854658",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://accounts.google.com/o/oauth2/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/dev-813%40autumn-it-week-2018.iam.gserviceaccount.com"
+}
