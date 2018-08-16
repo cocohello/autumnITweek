@@ -2,41 +2,147 @@
  * http://usejsdoc.org/
  */
 
-//import modules for setting slack connection and create an instance of middleware.
-const Botkit = require('botkit');
-const dialogflowMiddleware = require('botkit-middleware-dialogflow')({
-  keyFilename: './src/autumn-it-week-2018-69982756a8f8.json',  // service account private key file from GCP
-});
+'use strict';
+
+const util = require('./util');
+const dialogflow = require('./dialogflowAgent');
+const path = require('path');
+
+module.exports = function(config) {
+  config = checkOptions(config);
+
+  const ignoreTypePatterns = util.makeArrayOfRegex(config.ignoreType || []);
+  const middleware = {};
+
+  const agent = (middleware.dialogflow = dialogflow(config));
+
+  middleware.receive = async function(bot, message, next) {
+    if (!message.text || message.is_echo || message.type === 'self_message') {
+      next();
+      return;
+    }
+
+    for (const pattern of ignoreTypePatterns) {
+      if (pattern.test(message.type)) {
+        console.log('skipping call to Dialogflow since type matched ', pattern);
+        next();
+        return;
+      }
+    }
+
+    const sessionId = util.generateSessionId(config, message);
+    const lang = message.lang || config.lang;
+
+    console.log(
+      'Sending message to dialogflow. sessionId=%s, language=%s, text=%s',
+      sessionId,
+      lang,
+      message.text
+    );
+
+    try {
+      const response = await agent.query(sessionId, lang, message.text);
+      Object.assign(message, response);
+
+      console.log('dialogflow annotated message: %O', message);
+      next();
+    } catch (error) {
+      console.log('dialogflow returned error', error);
+      next(error);
+    }
+  };
+
+  middleware.hears = function(patterns, message) {
+    const regexPatterns = util.makeArrayOfRegex(patterns);
+    for (const pattern of regexPatterns) {
+      if (pattern.test(message.intent) && message.confidence >= config.minimumConfidence) {
+        console.log('dialogflow intent matched hear pattern', message.intent, pattern);
+        return true;
+      }
+    }
+    return false;
+  };
+
+  middleware.action = function(patterns, message) {
+    const regexPatterns = util.makeArrayOfRegex(patterns);
+
+    for (const pattern of regexPatterns) {
+      if (pattern.test(message.action) && message.confidence >= config.minimumConfidence) {
+        console.log('dialogflow action matched hear pattern', message.intent, pattern);
+        return true;
+      }
+    }
+    return false;
+  };
+
+  return middleware;
+};
+
+/**
+ * Validate config and set defaults as required
+ *
+ * @param {object} config - the configuration provided by the user
+ * @return {object} validated configuration with defaults applied
+ */
+function checkOptions(config = {}) {
+  const defaults = {
+    version: 'v2',
+    minimumConfidence: 0.5,
+    sessionIdProps: ['user', 'channel'],
+    ignoreType: 'self_message',
+    lang: 'jp',
+  };
+  config = Object.assign({}, defaults, config);
+
+  config.version = config.version.toUpperCase();
+
+  if (config.keyFilename) {
+    if (!path.isAbsolute(config.keyFilename)) {
+      config.keyFilename = path.join(process.cwd(), config.keyFilename);
+    }
+  }
+  if (config.version === 'V1' && !config.token) {
+    throw new Error('Dialogflow token must be provided for v1.');
+  }
+
+  if (config.version === 'V2' && !config.keyFilename) {
+    throw new Error('Dialogflow keyFilename must be provided for v2.');
+  }
+
+  console.log(`settings are ${JSON.stringify(config)}`);
+  return config;
+}
 
 
-//initiates controller obeject of Slack
-const slackController = Botkit.slackbot();//reference https://botkit.ai/docs/readme-slack.html#create-a-controller
 
-//get bot object which is a worker to connect to slack..
-const slackBot = slackController.spawn({
-  token: process.env.SLACK_TOKEN// Slack API Token connected to dialogflow's bot
-});
 
-//use receive middleware to process the message each time Slack emits a message to Botkit
-slackController.middleware.receive
-	.use(dialogflowMiddleware.receive);
 
-// tell bot to start connection
-slackBot.startRTM();
 
-//catch message from slack
-slackController
-	.hears(
-		'.*', 
-		['direct_message', dialogflowMiddleware.hears], 
-		( bot, message ) => {
-			slackController.trigger('input.unknown', [bot, message]);
-			/*replyText = message.fulfillment.text;  // message object has new fields added by Dialogflow
-			bot.reply(message, replyText);*/
-		}
-	);
 
-slackController
-	.on('input.unknown', (bot, message) => {
-		bot.reply(message, 'まだまだですねえ');
-	});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
