@@ -4,6 +4,7 @@
 
 const hasha = require('hasha');
 const uuidv1 = require('uuid/v1');
+const debug = require('debug')('dialogflow-middleware');
 
 /*
 Botkit allows patterns to be an array or a comma separated string containing a list of regular expressions.
@@ -55,7 +56,7 @@ exports.generateSessionId = function(config, message) {
     })
     .filter(x => typeof x === 'string');
 
-  console.log(
+  debug(
     'generateSessionId using props %j. Values on this message are %j',
     props,
     hashElements

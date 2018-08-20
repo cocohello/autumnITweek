@@ -7,6 +7,7 @@
 const util = require('./util');
 const dialogflow = require('./dialogflowAgent');
 const path = require('path');
+const debug = require('debug')('dialogflow-middleware');
 
 module.exports = function(config) {
   config = checkOptions(config);
@@ -16,15 +17,16 @@ module.exports = function(config) {
 
   const agent = (middleware.dialogflow = dialogflow(config));
 
-  middleware.receive = async function(bot, message, next) {
+  middleware.receiveText = async function(bot, message, next) {
+	  console.log(message);
     if (!message.text || message.is_echo || message.type === 'self_message') {
       next();
       return;
     }
 
     for (const pattern of ignoreTypePatterns) {
-      if (pattern.test(message.type)) {
-        console.log('skipping call to Dialogflow since type matched ', pattern);
+    	if (pattern.test(message.type)) {
+        debug('skipping call to Dialogflow since type matched ', pattern);
         next();
         return;
       }
@@ -32,7 +34,7 @@ module.exports = function(config) {
 
     const sessionId = util.generateSessionId(config, message);
     const lang = message.lang || config.lang;
-    console.log(
+    debug(
       'Sending message to dialogflow. sessionId=%s, language=%s, text=%s',
       sessionId,
       lang,
@@ -43,19 +45,23 @@ module.exports = function(config) {
       const response = await agent.query(sessionId, lang, message.text);
       Object.assign(message, response);
 
-      console.log('dialogflow annotated message: %O', message);
+      debug('dialogflow annotated message: %O', message);
       next();
     } catch (error) {
-      console.log('dialogflow returned error', error);
+      debug('dialogflow returned error', error);
       next(error);
     }
   };
 
-  middleware.hears = function(patterns, message) {
+  middleware.receiveImage = async function(bot, message, next){
+	  
+  }
+  
+  middleware.hearsText = function(patterns, message) {
     const regexPatterns = util.makeArrayOfRegex(patterns);
     for (const pattern of regexPatterns) {
       if (pattern.test(message.intent) && message.confidence >= config.minimumConfidence) {
-        console.log('dialogflow intent matched hear pattern', message.intent, pattern);
+        debug('dialogflow intent matched hear pattern', message.intent, pattern);
         return true;
       }
     }
@@ -67,7 +73,7 @@ module.exports = function(config) {
 
     for (const pattern of regexPatterns) {
       if (pattern.test(message.action) && message.confidence >= config.minimumConfidence) {
-        console.log('dialogflow action matched hear pattern', message.intent, pattern);
+        debug('dialogflow action matched hear pattern', message.intent, pattern);
         return true;
       }
     }
@@ -108,7 +114,7 @@ function checkOptions(config = {}) {
     throw new Error('Dialogflow keyFilename must be provided for v2.');
   }
 
-  console.log(`settings are ${JSON.stringify(config)}`);
+  debug(`settings are ${JSON.stringify(config)}`);
   return config;
 }
 

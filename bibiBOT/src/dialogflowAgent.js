@@ -5,6 +5,7 @@
 const dialogflow = require('dialogflow');
 const structProtoToJson = require('./structjson').structProtoToJson;//to fix some bug in gRPC(return null becuase google protobuf sutruct contains it, so firstly need to convert to Json file and it back to proto)
 const _ = require('lodash');
+const debug = require('debug')('dialogflow-middleware');
 
 //export dialogflow module to hand it to the slack bot
 module.exports = function(config) {
@@ -66,10 +67,10 @@ class DialogFlowAPI_V2 {
     	//detectIntent method will process a NLP and return structured, actionable data as a result
       this.app.detectIntent(request, function(error, response) {
         if (error) {
-          console.log('dialogflow api error: ', error);
+          debug('dialogflow api error: ', error);
           reject(error);
         } else {
-          console.log('!detectIntect!dialogflow api response: ', response);
+          debug('!detectIntect!dialogflow api response: ', response);
           try {
             const data = DialogFlowAPI_V2._normalize(response);
             resolve(data);
