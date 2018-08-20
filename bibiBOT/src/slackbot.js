@@ -32,7 +32,6 @@ module.exports = function(config) {
 
     const sessionId = util.generateSessionId(config, message);
     const lang = message.lang || config.lang;
-
     console.log(
       'Sending message to dialogflow. sessionId=%s, language=%s, text=%s',
       sessionId,
@@ -113,36 +112,4 @@ function checkOptions(config = {}) {
   return config;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//[END slackbot]

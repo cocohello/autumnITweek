@@ -50,7 +50,7 @@ class DialogFlowAPI_V2 {
     //initiates sessionClient
     this.app = new dialogflow.SessionsClient(opts);
   }
-//create method of this dialogflow agent to process user's query
+//******* process user's query********//
   query(sessionId, languageCode, text) {
     const request = {
       session: this.app.sessionPath(this.projectId, sessionId),
@@ -69,7 +69,7 @@ class DialogFlowAPI_V2 {
           console.log('dialogflow api error: ', error);
           reject(error);
         } else {
-          console.log('dialogflow api response: ', response);
+          console.log('!detectIntect!dialogflow api response: ', response);
           try {
             const data = DialogFlowAPI_V2._normalize(response);
             resolve(data);
@@ -96,3 +96,6 @@ class DialogFlowAPI_V2 {
     };
   }
 }
+
+
+//[END dialogflowAgent]
