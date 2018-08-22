@@ -5,10 +5,10 @@
 'use strict';
 
 //import modules for setting slack connection and create an instance of middleware.
-const debug = require('debug')('dialogflow-middleware');
+const debug = require('debug');
 const Botkit = require('botkit');//reference https://botkit.ai/docs/readme-slack.html#create-a-controller
 const dialogflowMiddleware = require('./slackbot')({//config
-	keyFilename: process.env.DIALOGFLOW_TOKEN  // service account private key file from GCP
+	keyFilename: process.env.DIALOGFLOW_TOKEN  // service account private key file from GCP which can reference by environment variable
 });
 
 //initiates controller obeject of Slack
@@ -17,15 +17,18 @@ const slackController
 		require_delivery: true,
 		scopes : ['bot', 'files:read']});
 
-//use receive middleware to process the message when Slack emits a message each time to Botkit 
+//use receive middleware to process the event when Slack emits a event(message) each time to Botkit 
 slackController.middleware.receive
-.use(dialogflowMiddleware.receiveText);
+.use(dialogflowMiddleware.receiveText)
+.use(dialogflowMiddleware.receiveImage);
 
-//get bot object which is a worker to connect to slack..
+//get bot object which is a worker to connect to slack.
 const slackBot = slackController.spawn({
   token: process.env.SLACK_TOKEN// Slack API Token connected to dialogflow's bot
 });
 
+
+/*should add some logic restart connection when it downed.*/
 // tell bot to start connection
 slackBot.startRTM();
 
@@ -76,7 +79,7 @@ slackController
 	});
 
 
-slackController.on('file_shared', function(bot, message) {
+/*slackController.on('file_shared', function(bot, message) {
 	//catch file message from slack
 	// the url to the file is in url_private. there are other fields containing image thumbnails as appropriate
 	var resp = getUrl(bot, message.file_id);
@@ -152,4 +155,4 @@ function pDownload(opts, dest){
 		});
 	});
 	});
-}
+}*/
