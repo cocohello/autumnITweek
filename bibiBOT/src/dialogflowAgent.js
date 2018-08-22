@@ -62,6 +62,7 @@ class DialogFlowAPI_V2 {
         },
       },
     };
+    console.log(`agent.js query\n ${JSON.stringify(request)}`);
     //return the response by a standardized format using _normalize function.
     return new Promise((resolve, reject) => {
     	//detectIntent method will process a NLP and return structured, actionable data as a result
@@ -73,6 +74,7 @@ class DialogFlowAPI_V2 {
           debug('!detectIntect!dialogflow api response: ', response);
           try {
             const data = DialogFlowAPI_V2._normalize(response);
+            console.log(`agent detectIntent response\n ${JSON.stringify(data)}`);
             resolve(data);
           } catch (err) {
             reject(err);

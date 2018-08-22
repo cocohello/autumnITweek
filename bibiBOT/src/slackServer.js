@@ -6,7 +6,7 @@
 
 //import modules for setting slack connection and create an instance of middleware.
 const debug = require('debug')('dialogflow-middleware');
-const Botkit = require('botkit');
+const Botkit = require('botkit');//reference https://botkit.ai/docs/readme-slack.html#create-a-controller
 const dialogflowMiddleware = require('./slackbot')({//config
 	keyFilename: process.env.DIALOGFLOW_TOKEN  // service account private key file from GCP
 });
@@ -15,7 +15,7 @@ const dialogflowMiddleware = require('./slackbot')({//config
 const slackController 
 	= Botkit.slackbot({
 		require_delivery: true,
-		scopes : ['bot', 'files:read']});//reference https://botkit.ai/docs/readme-slack.html#create-a-controller
+		scopes : ['bot', 'files:read']});
 
 //use receive middleware to process the message when Slack emits a message each time to Botkit 
 slackController.middleware.receive
@@ -44,6 +44,9 @@ slackController
 				case 'input.work1' : 
 					slackController.trigger('input.work1', [bot, message]);
 					break;
+				case 'intent_work1.intent_work1-custom' : 
+					slackController.trigger('intent_work1.intent_work1-custom', [bot, message]);
+					break;
 				default : 
 					slackController.trigger('input.unknown', [bot, message]);
 			}
@@ -64,6 +67,10 @@ slackController
 	})
 	.on('input.unkown', (bot, message) => {
 		console.log('\n input.unkown');
+		var replyText = message.fulfillment.text;  // message object has new fields added by Dialogflow
+		bot.reply(message, replyText);
+	}).on('intent_work1.intent_work1-custom', (bot, message) => {
+		console.log('\n intent_work1.intent_work1-custom');
 		var replyText = message.fulfillment.text;  // message object has new fields added by Dialogflow
 		bot.reply(message, replyText);
 	});
