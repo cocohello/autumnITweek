@@ -18,7 +18,7 @@ module.exports = function(config) {
   const agent = (middleware.dialogflow = dialogflow(config));
 
   middleware.receiveText = async function(bot, message, next) {
-	  console.log(message);
+	  
     if (!message.text || message.is_echo || message.type === 'self_message') {
       next();
       return;
@@ -53,10 +53,41 @@ module.exports = function(config) {
     }
   };
 
-  middleware.receiveImage = async function(bot, message, next){
-	  
+  /*middleware.receiveImage = async function(bot, message, next){
+
+	//catch file message from slack
+	  const request = require('request');
+	  const fs = require('fs');
+
+	if (message.type !== 'file_shared') {
+		next();
+		return;
+	}
+	console.log('receiveImage');
+	console.log(bot);
+	
+	var destination_path = '/tmp/uploaded';
+	// the url to the file is in url_private. there are other fields containing image thumbnails as appropriate
+	var url = message.file.url_private;
+	
+	console.log(bot.config);
+	
+	var opts = {
+		method: 'GET',
+		url: url,
+		headers: {
+			Authorization: 'Bearer ' + bot.config.bot.token, // Authorization header with bot's access token
+		}
+	};
+	
+	request(opts, function(err, res, body) {
+		// body contains the content
+		console.log('FILE RETRIEVE STATUS',res.statusCode);          
+	}).pipe(fs.createWriteStream(destination_path)); // pipe output to filesystem
+	
+	next();
   }
-  
+*/  
   middleware.hearsText = function(patterns, message) {
     const regexPatterns = util.makeArrayOfRegex(patterns);
     for (const pattern of regexPatterns) {

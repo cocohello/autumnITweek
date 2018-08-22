@@ -12,7 +12,10 @@ const dialogflowMiddleware = require('./slackbot')({//config
 });
 
 //initiates controller obeject of Slack
-const slackController = Botkit.slackbot({require_delivery: true});//reference https://botkit.ai/docs/readme-slack.html#create-a-controller
+const slackController 
+	= Botkit.slackbot({
+		require_delivery: true,
+		scopes : ['bot', 'files:read']});//reference https://botkit.ai/docs/readme-slack.html#create-a-controller
 
 //use receive middleware to process the message when Slack emits a message each time to Botkit 
 slackController.middleware.receive
@@ -33,6 +36,7 @@ slackController
 		['.*'], 
 		'direct_message', dialogflowMiddleware.hearsText, 
 		( bot, message ) => {
+			
 			switch(message.action){
 				case 'input.welcome' : 
 					slackController.trigger('input.welcome', [bot, message]);
@@ -65,31 +69,80 @@ slackController
 	});
 
 
-//catch file message from slack
+slackController.on('file_shared', function(bot, message) {
+	//catch file message from slack
+	// the url to the file is in url_private. there are other fields containing image thumbnails as appropriate
+	var resp = getUrl(bot, message.file_id);
+	resp.then(function(value) {
+		var opts = {
+			method: 'GET',
+			url: value.file.url_private,
+			headers: {
+				Authorization: 'Bearer ' + bot.config.token, // Authorization header with bot's access token
+			}
+		};
+		console.log(opts);
+		var destination_path = `/tmp/uploaded/${value.file.name}`;
+		var writestream = fs.createWriteStream(destination_path);
+		
+	//download image file.
+	pDownload(opts, destination_path)
+	  .then( ()=> console.log('downloaded file no issues...'))
+	  .catch( e => console.error('error while downloading', e));
+		    
+	}, function(reason) {
+		console.log(reason);
+	});
+});
+
+
+function getUrl(bot, file_id) {
+    return new Promise(function (resolve, reject) {
+        const messageObj = {
+            token: bot.config.token,
+            file: file_id
+        };
+        console.log(messageObj);
+        bot.api.files.info(messageObj, function (err, res) {
+            if (err) {
+                console.log(err);
+                reject(err);
+            }
+            resolve(res);
+        });
+    });
+}
+
 const request = require('request');
+const progress = require('request-progress');
 const fs = require('fs');
-
-slackController
-.hears(
-	['.*'], 
-	'file_shared',  
-	( bot, message ) => {
-	    var destination_path = '/tmp/uploaded';
-	    // the url to the file is in url_private. there are other fields containing image thumbnails as appropriate
-	    var url = message.file.url_private;
-
-	    var opts = {
-	        method: 'GET',
-	        url: url,
-	        headers: {
-	          Authorization: 'Bearer ' + bot.config.bot.token, // Authorization header with bot's access token
-	        }
-	    };
-
-	    request(opts, function(err, res, body) {
-	        // body contains the content
-	        console.log('FILE RETRIEVE STATUS',res.statusCode);          
-	    }).pipe(fs.createWriteStream(destination_path)); // pipe output to filesystem
-		}
-);
-
+function pDownload(opts, dest){
+	var file = fs.createWriteStream(dest);
+	return new Promise((resolve, reject) => {
+		var responseSent = false; // flag to make sure that response is sent only once.
+		
+	const result = progress(
+		request(opts, function(err, res, body) {
+			// body contains the content
+			console.log('FILE RETRIEVE STATUS', res.statusCode);
+		})		
+	).on('progress', state => {
+		console.log(state)
+	}).on('error', err => {
+		if(responseSent)  return;
+		responseSent = true;
+		reject(err);
+		console.log(err)  
+	}).on('end', () => {});
+	console.log(result);
+	result.pipe(file);
+	
+	file.on('finish', () =>{
+		file.close(() => {
+			if(responseSent)  return;
+			responseSent = true;
+			resolve();
+		});
+	});
+	});
+}
