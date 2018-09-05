@@ -8,13 +8,16 @@ const util = require('./util');
 const dialogflow = require('./dialogflowAgent');
 const path = require('path');
 const debug = require('debug');
+var dest_path = '';
+var resForSelf = {};
 
 module.exports = function(config) {
 	config = checkOptions(config);
 	
 	const ignoreTypePatterns = util.makeArrayOfRegex(config.ignoreType || []);
 	const middleware = {};
-	
+	let sessionId = '';
+	let lang ='';
 	//dialogflow agent connected with service account of GCP
 	const agent = (middleware.dialogflow = dialogflow(config));
 	  
@@ -34,20 +37,24 @@ module.exports = function(config) {
 			}
 		}
 		console.log(`slackbot.js receiveText \n ${JSON.stringify(message)}`);
-		
-		const sessionId = util.generateSessionId(config, message);
-		const lang = message.lang || config.lang;
-			console.log(`slackbot.js receiveText \n ${JSON.stringify(message)}`);
+		sessionId = util.generateSessionId(config, message);
+		lang = message.lang || config.lang;
+			//console.log(`slackbot.js receiveText \n ${JSON.stringify(message)}\n`);
 			console.log(
-				'Sending message to dialogflow. sessionId=%s, language=%s, text=%s',
+				'Sending message to dialogflow. sessionId=%s, language=%s, text=%s\n',
 				sessionId,
 				lang,
 				message.text
 			);
 		
 		try {//invoke agent's method to set request and use detectIntent API
-			const response = await agent.query(sessionId, lang, message.text);
+			const response = await agent.detectTextIntent(sessionId, lang, message.text);
 			Object.assign(message, response);
+			//for self message to call webhook
+			if(response.intent === 'intent_work1 - uploadfile'){
+				resForSelf = response.nlpResponse;
+			}
+			
 			debug('dialogflow annotated message: %O', message);
 			next();
 		} catch (error) {
@@ -56,15 +63,14 @@ module.exports = function(config) {
 		}
 	};
 	
-	//process 'file_shared' and 'direct_message' event emited from slack user
-	middleware.receiveImage = async function(bot, message, next){
-		
-		console.log(`slackbot.js receiveImage \n ${JSON.stringify(message)}`);
-		//ignore events except 'file_shared' and 'direct_message'
-		if (!(message.type === 'file_shared' || message.type ===  'direct_message') || message.is_echo) {
+	//process 'file_shared' event and intent event emitted from slack user
+	middleware.receiveFile = async function(bot, message, next){
+		//ignore events except 'file_shared'
+		if ( message.type !== 'file_shared') {
 			next();
 			return;
 		}
+		console.log(`slackbot.js receiveEvent fileshare \n ${JSON.stringify(message)}\n`);
 		
 		for (const pattern of ignoreTypePatterns) {
 			if (pattern.test(message.type)) {
@@ -73,32 +79,68 @@ module.exports = function(config) {
 				return;
 			}
 		}
-		console.log(`slackbot.js receiveImage after \n ${JSON.stringify(message)}`);
 		// the url to the file is in url_private. there are other fields containing image thumbnails as appropriate
 		var fileInfo = getUrl(bot, message.file_id);
 		fileInfo.then(function(fInfo) {
-			console.log(`slackbot.js geturl fileInfo \n ${JSON.stringify(fInfo)}`);
+			console.log(`slackbot.js receiveEvent geturl fileInfo \n ${JSON.stringify(fInfo)}\n`);
 			var opts = {
 				method: 'GET',
 				url: fInfo.file.url_private,
 				headers: {Authorization: 'Bearer ' + bot.config.token} // Authorization header with bot's access token
 			};
-			var dest_path = `/tmp/uploaded/${fInfo.file.name}`;
-			
+			dest_path = `/tmp/uploaded/${fInfo.file.name}`;
+			console.log(`slackbot.js receiveEvent fileshare${dest_path}\n`);
 			//download image file
 			pDownload(opts, dest_path)
-				.then( ()=> console.log('downloaded file no issues'))
-				.catch( e => console.error('error while downloading', e));
+				.then( ()=> console.log('downloaded file no issues\n'))
+				.catch( e => console.error('error while downloading\n', e));
 		}, function(reason) {
 			console.log(reason);
 		});
+		
 	}
-	  
+	
+	middleware.receiveSelfMsg = async function(bot, message, next){
+		if ( message.type !=='self_message') {next();return;}
+		console.log(`slackbot.js receiveSelfMsg \n ${JSON.stringify(message)}\n`);
+		
+		let parameters={};
+		switch (message.text) {
+			case 'OK、申請処理始めます。' : 
+				parameters = {"resForSelf" : resForSelf, "parameter" : [{"dest_path":dest_path}]};	
+					console.log(
+							'Sending message to dialogflow. sessionId=%s, language=%s, text=%s, responseId=%s, despath=%s\n',
+							sessionId,
+							lang,
+							message.text,
+							resForSelf.responseId,
+							parameters.parameter.dest_path
+					);
+					
+					try {//invoke agent's method to set request and send it to webhook service
+						const response = await agent.detectWebIntent(sessionId, lang, parameters);
+						Object.assign(message, response);
+						resForSelf={};
+						dest_path={};
+						debug('dialogflow annotated message: %O', message);
+						next();
+					} catch (error) {
+						debug('dialogflow returned error', error);
+						next(error);
+					}
+				break;
+			case 'かしこまりました。少々お待ちください。' :
+				//parameters = {"resForSelf" : resForSelf, "parameter" : [{"":}]};
+				break;
+		}
+		next();
+	}
+	
 	middleware.hearsText = function(patterns, message) {
 		const regexPatterns = util.makeArrayOfRegex(patterns);
 		for (const pattern of regexPatterns) {
 			if (pattern.test(message.intent) && message.confidence >= config.minimumConfidence) {
-				console.log('dialogflow intent matched hear pattern', message.intent, pattern);
+				debug('dialogflow intent matched hear pattern\n', message.intent, pattern);
 			return true;
 			}
 		}
@@ -129,7 +171,7 @@ function checkOptions(config = {}) {
 		ignoreType: 'self_message',
 		lang: 'jp'
 	};
-	config = Object.assign({}, defaults, config);
+	config = Object.assign({}, defaults, config); // assign user's messages and response
 	config.version = config.version.toUpperCase();
 	
 	if (config.keyFilename) {
@@ -179,7 +221,7 @@ function pDownload(opts, dest){
 				console.log('FILE RETRIEVE STATUS', res.statusCode);
 			})		
 		).on('progress', state => {
-			console.log(`slackbot.js pDownload state \n${JSON.stringify(state)}`);
+			console.log(`slackbot.js pDownload state \n${JSON.stringify(state)}\n`);
 		}).on('error', err => {
 			if(responseSent)  return;
 			responseSent = true;
@@ -187,7 +229,7 @@ function pDownload(opts, dest){
 			console.log(err)  
 		}).on('end', () => {});
 		
-		console.log(`slackbot.js pDownload result \n ${JSON.stringify(result)}`);
+		console.log(`slackbot.js pDownload result \n ${JSON.stringify(result)}\n`);
 		//copy file to the unique directory through writestream
 		result.pipe(file);
 		//close stream if finished
