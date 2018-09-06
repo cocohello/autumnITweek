@@ -54,6 +54,9 @@ slackController
 				case 'intent_work1-uploadfile-event_trigger' :
 					slackController.trigger('intent_work1-uploadfile-event_trigger', [bot, message]);
 					break;
+				case 'input.work2' : 
+					slackController.trigger('input.work2', [bot, message]);
+					break;
 				default : 
 					slackController.trigger('input.unknown', [bot, message]);
 			}
@@ -86,6 +89,11 @@ slackController
 	.on('intent_work1-uploadfile-event_trigger', (bot, message) => {
 		console.log('intent_work1-uploadfile-event_trigger \n');
 		replyText = message.fulfillment.text;  // message object has new fields added by Dialogflow
+		bot.reply(message, replyText);
+	}).on('input.work2', (bot, message) => {
+		console.log('input.work2 \n');
+		//replyText = message.attachment;  // message object has new fields added by Dialogflow
+		replyText = message.fulfillment.text;
 		bot.reply(message, replyText);
 	});
 

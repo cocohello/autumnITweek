@@ -110,11 +110,11 @@ class DialogFlowAPI_V2 {
 					reject(err);
 				} else {
 					debug('detectWebIntent post response: \n', res);
+					console.log(`dialogflowAgent.js detectWebIntent response\n ${JSON.stringify(res)}\n`);
 					resolve(res);
 				}
 			})
 		}).then(res => {
-			console.log(`dialogflowAgent.js detectWebIntent response\n ${JSON.stringify(res)}\n`);
 			if (res.body.followupEventInput.name) {				//check if response has followupEvent.
 				return DialogFlowAPI_V2.detectEventIntent(this.app, this.app.sessionPath(this.projectId, sessionId), languageCode, res.body.followupEventInput.name, parameters.parameter);
 			}
@@ -132,6 +132,7 @@ class DialogFlowAPI_V2 {
 				text: _.get(response, 'queryResult.fulfillmentText', null),
 				messages: _.get(response, 'queryResult.fulfillmentMessages', null),
 			},
+			attachment: response.queryResult.webhookPayload,
 			confidence: _.get(response, 'queryResult.intentDetectionConfidence', null),
 			nlpResponse: response,
 		};
@@ -158,15 +159,42 @@ class DialogFlowAPI_V2 {
 					reject(error);
 				} else {
 					try {
-						console.log(response);
-						const data = DialogFlowAPI_V2._normalize(response);
-						console.log(`dialogflowAgent.js detectEventIntent response\n ${JSON.stringify(data)}`);
-						resolve(data);
+						resolve(response);
+						console.log(`dialogflowAgent.js detectEventIntent response\n ${JSON.stringify(response)}`);
 					} catch (err) {
 						reject(err);
 					}
 				}
 			});
+		}).then( response => {
+			const webhookRequest = require('request');
+			const request = {
+				session : sessionId,
+				responseId : response.responseId,
+				queryResult : response.queryResult
+			};
+			const opts = {
+				'url' : 'https://bbbotserver.herokuapp.com/work_result',
+				'json' : request,
+				'Content-Type' : 'application/json',
+			};
+			console.log(`dialogflowAgent.js detectWebIntent workresult request \n ${JSON.stringify(opts)}\n`);
+			
+			return new Promise((resolve, reject) => {
+				//this method will send a request to the customized webhook and return response as a result
+				webhookRequest.post(opts, function(err, res, body) {
+					console.log('REQUEST RETRIEVE STATUS', res.statusCode);
+					if (err) {
+						debug('dialogflow api error: ', err);
+						reject(err);
+					} else {
+						debug('detectWebIntent work result post response: \n', res);
+						const data = DialogFlowAPI_V2._normalize(res.body);
+						console.log(`dialogflowAgent.js detectWebIntent workresult response \n ${JSON.stringify(data)}\n`);
+						resolve(data);
+					}
+				})
+			})
 		});
 	}
 

@@ -8,6 +8,7 @@ const util = require('./util');
 const dialogflow = require('./dialogflowAgent');
 const path = require('path');
 const debug = require('debug');
+const structjson = require('./structjson');//to fix some bug in gRPC(return null becuase google protobuf sutruct contains it, so firstly need to convert to Json file and it back to proto)
 var dest_path = '';
 var resForSelf = {};
 
@@ -49,9 +50,9 @@ module.exports = function(config) {
 		
 		try {//invoke agent's method to set request and use detectIntent API
 			const response = await agent.detectTextIntent(sessionId, lang, message.text);
-			Object.assign(message, response);
+			Object.assign(message, response);//merge message with response
 			//for self message to call webhook
-			if(response.intent === 'intent_work1 - uploadfile'){
+			if(response.intent === 'intent_work1 - uploadfile' || response.intent === 'intent_work2'){
 				resForSelf = response.nlpResponse;
 			}
 			
@@ -105,14 +106,15 @@ module.exports = function(config) {
 		console.log(`slackbot.js receiveSelfMsg \n ${JSON.stringify(message)}\n`);
 		
 		let parameters={};
-		switch (message.text) {
+		let mText = message.text;
+		switch (mText) {
 			case 'OK、申請処理始めます。' : 
 				parameters = {"resForSelf" : resForSelf, "parameter" : [{"dest_path":dest_path}]};	
 					console.log(
 							'Sending message to dialogflow. sessionId=%s, language=%s, text=%s, responseId=%s, despath=%s\n',
 							sessionId,
 							lang,
-							message.text,
+							mText,
 							resForSelf.responseId,
 							parameters.parameter.dest_path
 					);
@@ -129,8 +131,27 @@ module.exports = function(config) {
 						next(error);
 					}
 				break;
-			case 'かしこまりました。少々お待ちください。' :
-				//parameters = {"resForSelf" : resForSelf, "parameter" : [{"":}]};
+			case (mText.match(/かしこまりました。.*ですね。しばらくお待ちください。/) || {}).input:
+				parameters = {"resForSelf" : resForSelf, "parameter" : structjson.structProtoToJson(resForSelf.parameter)};	
+				console.log(
+						'Sending message to dialogflow. sessionId=%s, language=%s, text=%s, responseId=%s, entities=%s\n',
+						sessionId,
+						lang,
+						mText,
+						resForSelf.responseId,
+						structjson.structProtoToJson(resForSelf.parameter)
+				);
+				
+				try {//invoke agent's method to set request and send it to webhook service
+					const response = await agent.detectWebIntent(sessionId, lang, parameters);
+					Object.assign(message, response);
+					resForSelf={};
+					debug('dialogflow annotated message: %O', message);
+					next();
+				} catch (error) {
+					debug('dialogflow returned error', error);
+					next(error);
+				}
 				break;
 		}
 		next();
