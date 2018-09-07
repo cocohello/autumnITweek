@@ -15,7 +15,7 @@ const dialogflowMiddleware = require('./slackbot')({//config
 const slackController 
 	= Botkit.slackbot({
 		require_delivery: true,
-		scopes : ['bot', 'files:read']});
+		scopes : ['bot', 'files:read', 'users:read']});
 
 //use receive middleware to process the event when Slack emits a event(message) each time to Botkit 
 slackController.middleware.receive
@@ -57,6 +57,9 @@ slackController
 				case 'input.work2' : 
 					slackController.trigger('input.work2', [bot, message]);
 					break;
+				case 'intent_work2-event_trigger' : 
+					slackController.trigger('intent_work2-event_trigger', [bot, message]);
+					break;
 				default : 
 					slackController.trigger('input.unknown', [bot, message]);
 			}
@@ -90,10 +93,16 @@ slackController
 		console.log('intent_work1-uploadfile-event_trigger \n');
 		replyText = message.fulfillment.text;  // message object has new fields added by Dialogflow
 		bot.reply(message, replyText);
-	}).on('input.work2', (bot, message) => {
+		
+	})
+	.on('input.work2', (bot, message) => {
 		console.log('input.work2 \n');
-		//replyText = message.attachment;  // message object has new fields added by Dialogflow
 		replyText = message.fulfillment.text;
+		bot.reply(message, replyText);
+	})
+	.on('intent_work2-event_trigger', (bot, message) => {
+		console.log('intent_work2-event_trigger \n');
+		replyText = message.attachment;  // message object has new fields added by Dialogflow
 		bot.reply(message, replyText);
 	});
 

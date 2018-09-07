@@ -9,8 +9,10 @@ const dialogflow = require('./dialogflowAgent');
 const path = require('path');
 const debug = require('debug');
 const structjson = require('./structjson');//to fix some bug in gRPC(return null becuase google protobuf sutruct contains it, so firstly need to convert to Json file and it back to proto)
-var dest_path = '';
 var resForSelf = {};
+var user_name; // Create a variable to hold name.
+var mode = '';
+
 
 module.exports = function(config) {
 	config = checkOptions(config);
@@ -29,7 +31,6 @@ module.exports = function(config) {
 			next();
 			return;
 		}
-		
 		for (const pattern of ignoreTypePatterns) {
 			if (pattern.test(message.type)) {
 				debug('skipping call to Dialogflow since type matched ', pattern);
@@ -37,10 +38,12 @@ module.exports = function(config) {
 				return;
 			}
 		}
+		let userID = message.user;
+		// Pass user id to get the user's name.
+		util.getUsername(userID).then((output) => { user_name = output.user.name;}) 
 		console.log(`slackbot.js receiveText \n ${JSON.stringify(message)}`);
 		sessionId = util.generateSessionId(config, message);
 		lang = message.lang || config.lang;
-			//console.log(`slackbot.js receiveText \n ${JSON.stringify(message)}\n`);
 			console.log(
 				'Sending message to dialogflow. sessionId=%s, language=%s, text=%s\n',
 				sessionId,
@@ -51,11 +54,17 @@ module.exports = function(config) {
 		try {//invoke agent's method to set request and use detectIntent API
 			const response = await agent.detectTextIntent(sessionId, lang, message.text);
 			Object.assign(message, response);//merge message with response
+			//to set mode
+			if(response.intent === 'intent_work1' || 'intent_work2'){
+				filename = 0;
+				foldername = '';
+				mode = response.intent;
+			}
 			//for self message to call webhook
 			if(response.intent === 'intent_work1 - uploadfile' || response.intent === 'intent_work2'){
 				resForSelf = response.nlpResponse;
 			}
-			
+			// Get user id from dialogflow.
 			debug('dialogflow annotated message: %O', message);
 			next();
 		} catch (error) {
@@ -65,14 +74,16 @@ module.exports = function(config) {
 	};
 	
 	//process 'file_shared' event and intent event emitted from slack user
+	let foldername, filename = 0;
 	middleware.receiveFile = async function(bot, message, next){
+		if(mode === 'intent_work1'){
 		//ignore events except 'file_shared'
 		if ( message.type !== 'file_shared') {
 			next();
 			return;
 		}
-		console.log(`slackbot.js receiveEvent fileshare \n ${JSON.stringify(message)}\n`);
-		
+		if(filename === 0) foldername = await util.createFolder(user_name);
+			console.log('1 '+foldername);
 		for (const pattern of ignoreTypePatterns) {
 			if (pattern.test(message.type)) {
 				debug('skipping call to Dialogflow since type matched ', pattern);
@@ -81,24 +92,23 @@ module.exports = function(config) {
 			}
 		}
 		// the url to the file is in url_private. there are other fields containing image thumbnails as appropriate
-		var fileInfo = getUrl(bot, message.file_id);
-		fileInfo.then(function(fInfo) {
+		filename++;
+		let fInfo = await getUrl(bot, message.file_id);
 			console.log(`slackbot.js receiveEvent geturl fileInfo \n ${JSON.stringify(fInfo)}\n`);
 			var opts = {
 				method: 'GET',
 				url: fInfo.file.url_private,
 				headers: {Authorization: 'Bearer ' + bot.config.token} // Authorization header with bot's access token
 			};
-			dest_path = `/tmp/uploaded/${fInfo.file.name}`;
-			console.log(`slackbot.js receiveEvent fileshare${dest_path}\n`);
+			let name = fInfo.file.name;
+			let extension = name.substr(name.lastIndexOf('.'), name.length-1);
+			let dest_path = `${foldername}${filename}${extension}`;
+			console.log(`slackbot.js receiveEvent fileshare ${dest_path}\n`);
 			//download image file
 			pDownload(opts, dest_path)
-				.then( ()=> console.log('downloaded file no issues\n'))
-				.catch( e => console.error('error while downloading\n', e));
-		}, function(reason) {
-			console.log(reason);
-		});
-		
+				.then( ()=> {console.log('downloaded file no issues\n'); })
+				.catch( e => console.error('error while downloading\n'));
+	} next();
 	}
 	
 	middleware.receiveSelfMsg = async function(bot, message, next){
@@ -109,21 +119,25 @@ module.exports = function(config) {
 		let mText = message.text;
 		switch (mText) {
 			case 'OK、申請処理始めます。' : 
-				parameters = {"resForSelf" : resForSelf, "parameter" : [{"dest_path":dest_path}]};	
+				parameters = {"resForSelf" : resForSelf, "parameter" : [{"dest_path":foldername, "img_count" : filename, "user_name":user_name }]};	
 					console.log(
-							'Sending message to dialogflow. sessionId=%s, language=%s, text=%s, responseId=%s, despath=%s\n',
+							'Sending message to dialogflow. sessionId=%s, language=%s, text=%s, responseId=%s, despath=%s, img_count=%s, user_name=%s\n',
 							sessionId,
 							lang,
 							mText,
 							resForSelf.responseId,
-							parameters.parameter.dest_path
+							parameters.parameter.dest_path,
+							parameters.parameter.img_count,
+							parameters.parameter.user_name,
 					);
 					
 					try {//invoke agent's method to set request and send it to webhook service
+						resForSelf={};
+						filename = 0;
+						foldername = '';
 						const response = await agent.detectWebIntent(sessionId, lang, parameters);
 						Object.assign(message, response);
-						resForSelf={};
-						dest_path={};
+						mode = '';
 						debug('dialogflow annotated message: %O', message);
 						next();
 					} catch (error) {
@@ -143,9 +157,10 @@ module.exports = function(config) {
 				);
 				
 				try {//invoke agent's method to set request and send it to webhook service
+					resForSelf={};
 					const response = await agent.detectWebIntent(sessionId, lang, parameters);
 					Object.assign(message, response);
-					resForSelf={};
+					mode = '';
 					debug('dialogflow annotated message: %O', message);
 					next();
 				} catch (error) {
@@ -163,18 +178,6 @@ module.exports = function(config) {
 			if (pattern.test(message.intent) && message.confidence >= config.minimumConfidence) {
 				debug('dialogflow intent matched hear pattern\n', message.intent, pattern);
 			return true;
-			}
-		}
-		return false;
-	};
-	
-	middleware.action = function(patterns, message) {
-		const regexPatterns = util.makeArrayOfRegex(patterns);
-		
-		for (const pattern of regexPatterns) {
-			if (pattern.test(message.action) && message.confidence >= config.minimumConfidence) {
-				debug('dialogflow action matched hear pattern', message.intent, pattern);
-				return true;
 			}
 		}
 		return false;
@@ -232,6 +235,7 @@ const request = require('request');
 const progress = require('request-progress');
 const fs = require('fs');
 function pDownload(opts, dest){
+	console.log('pDownload '+dest);
 	var file = fs.createWriteStream(dest);
 	
 	return new Promise((resolve, reject) => {

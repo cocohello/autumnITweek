@@ -5,6 +5,8 @@
 const hasha = require('hasha');
 const uuidv1 = require('uuid/v1');
 const debug = require('debug')('dialogflow-middleware');
+const rp = require('request-promise-native');
+const fs = require('fs');
 
 /*
 Botkit allows patterns to be an array or a comma separated string containing a list of regular expressions.
@@ -68,5 +70,48 @@ exports.generateSessionId = function(config, message) {
   }
 };
 
+exports.getUsername = function getUsername(userid){
+	let options = {
+			uri: '',
+			headers: {
+				'Cache-Control': 'no-cache',
+				'User-Agent': 'Request-Promise',
+				json: true
+			}
+	};
+	
+	let username; // Create a variable to hold name.
+    return new Promise((resolve, reject) => {
+        //get token from https://api.slack.com/methods/users.info
+            options.uri = "https://slack.com/api/users.info?token=xoxp-407231588053-406537518929-430304222677-59fb25a2ef5fab36cbdbbd299efb0bc0&user="+userid+"&pretty=1";
+             rp(options).then(function (body) {
+                resolve(JSON.parse(body));
+                console.log('Retrieved Info slack --- ' + JSON.parse(body));
+           })
+           .catch(function (err) {
+                 resolve(err);
+                 console.log('aborted - slack ' + JSON.stringify(err));
+           });
+       });
+}
+
+let dateFormat = require('dateformat');
+exports.createFolder = function (username) {
+	let folder, nowTime;
+
+	nowTime = dateFormat(new Date(), "yymmddHHMMss");
+	folder = `C:/tmp/uploaded/${username}_${nowTime}/`;
+	return new Promise((resolve, reject) => {
+		fs.mkdir(folder, function(err){
+			if(err){
+				console.log(err);
+				reject(err);
+			}else{
+				console.log('create newDir');	
+				resolve(folder);
+			}		
+		});
+	})
+}
 
 //[END utill]
