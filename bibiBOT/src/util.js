@@ -80,13 +80,12 @@ exports.getUsername = function getUsername(userid){
 			}
 	};
 	
-	let username; // Create a variable to hold name.
     return new Promise((resolve, reject) => {
         //get token from https://api.slack.com/methods/users.info
-            options.uri = "https://slack.com/api/users.info?token=xoxp-407231588053-406537518929-430304222677-59fb25a2ef5fab36cbdbbd299efb0bc0&user="+userid+"&pretty=1";
+            options.uri = "https://slack.com/api/users.info?token=xoxb-407231588053-415235176083-8aRRQWzVCt7aBAuk2ebAefZJ&user="+userid+"&pretty=1";
              rp(options).then(function (body) {
                 resolve(JSON.parse(body));
-                console.log('Retrieved Info slack --- ' + JSON.parse(body));
+                //console.log('Retrieved Info slack --- ' + JSON.parse(body));
            })
            .catch(function (err) {
                  resolve(err);

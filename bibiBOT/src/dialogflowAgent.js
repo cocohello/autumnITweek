@@ -132,6 +132,7 @@ class DialogFlowAPI_V2 {
 				text: _.get(response, 'queryResult.fulfillmentText', null),
 				messages: _.get(response, 'queryResult.fulfillmentMessages', null),
 			},
+			source: response.queryResult.webhookSource,
 			attachment: response.queryResult.webhookPayload,
 			confidence: _.get(response, 'queryResult.intentDetectionConfidence', null),
 			nlpResponse: response,

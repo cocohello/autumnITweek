@@ -40,7 +40,7 @@ module.exports = function(config) {
 		}
 		let userID = message.user;
 		// Pass user id to get the user's name.
-		util.getUsername(userID).then((output) => { user_name = output.user.name;}) 
+		await util.getUsername(userID).then((output) => { user_name = output.user.name;})
 		console.log(`slackbot.js receiveText \n ${JSON.stringify(message)}`);
 		sessionId = util.generateSessionId(config, message);
 		lang = message.lang || config.lang;

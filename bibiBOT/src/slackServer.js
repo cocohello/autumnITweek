@@ -5,6 +5,7 @@
 'use strict';
 
 //import modules for setting slack connection and create an instance of middleware.
+const fs = require('fs');
 const debug = require('debug');
 const Botkit = require('botkit');//reference https://botkit.ai/docs/readme-slack.html#create-a-controller
 const dialogflowMiddleware = require('./slackbot')({//config
@@ -32,6 +33,32 @@ const slackBot = slackController.spawn({
 /*should add some logic restart connection when it downed.*/
 // tell bot to start connection
 slackBot.startRTM();
+
+slackController.on('rtm_close', function (bot, err) {
+    console.log('** The RTM api just closed, reason', err);
+    try {
+        // sometimes connection closing, so, we should restart bot
+        if (bot.doNotRestart != true) {
+            let token = bot.config.token;
+            console.log('Trying to restart bot ' + token);
+            restartBot(bot);
+        }
+    } catch (err) {
+        console.error('Restart bot failed', err);
+    }
+});
+
+function restartBot(bot) {
+    bot.startRTM(function (err) {
+        if (err) {
+            console.error('Error restarting bot to Slack:', err);
+        }
+        else {
+            let token = bot.config.token;
+            console.log('Restarted bot for %s', token);
+        }
+    });
+}
 
 //catch text message from slack
 //controller.hears(patterns, types, middleware function, callback)
@@ -93,6 +120,14 @@ slackController
 		console.log('intent_work1-uploadfile-event_trigger \n');
 		replyText = message.fulfillment.text;  // message object has new fields added by Dialogflow
 		bot.reply(message, replyText);
+		bot.api.files.upload({
+	        file: fs.createReadStream(message.source),
+	        channels: message.channel
+	    }, function (error, done) {
+	        console.log('slackServer.js fileupload'+JSON.stringify(error));
+	        console.log(JSON.stringify(done));
+	    });
+		
 		
 	})
 	.on('input.work2', (bot, message) => {
