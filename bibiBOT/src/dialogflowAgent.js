@@ -160,8 +160,9 @@ class DialogFlowAPI_V2 {
 					reject(error);
 				} else {
 					try {
+						response.queryResult.outputContexts[0].parameters = request.queryInput.event.parameters;
+						console.log(`dialogflowAgent.js detectEventIntent response\n ${JSON.stringify(response.queryResult.outputContexts[0].parameters)}`);
 						resolve(response);
-						console.log(`dialogflowAgent.js detectEventIntent response\n ${JSON.stringify(response)}`);
 					} catch (err) {
 						reject(err);
 					}

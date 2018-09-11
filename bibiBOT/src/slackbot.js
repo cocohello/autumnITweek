@@ -12,6 +12,7 @@ const structjson = require('./structjson');//to fix some bug in gRPC(return null
 var resForSelf = {};
 var user_name; // Create a variable to hold name.
 var mode = '';
+var foldername, filename = 0;
 
 
 module.exports = function(config) {
@@ -55,7 +56,7 @@ module.exports = function(config) {
 			const response = await agent.detectTextIntent(sessionId, lang, message.text);
 			Object.assign(message, response);//merge message with response
 			//to set mode
-			if(response.intent === 'intent_work1' || 'intent_work2'){
+			if(response.intent === 'intent_work1' || response.intent === 'intent_work2'){
 				filename = 0;
 				foldername = '';
 				mode = response.intent;
@@ -74,7 +75,6 @@ module.exports = function(config) {
 	};
 	
 	//process 'file_shared' event and intent event emitted from slack user
-	let foldername, filename = 0;
 	middleware.receiveFile = async function(bot, message, next){
 		if(mode === 'intent_work1'){
 		//ignore events except 'file_shared'

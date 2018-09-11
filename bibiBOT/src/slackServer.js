@@ -33,22 +33,22 @@ const slackBot = slackController.spawn({
 /*should add some logic restart connection when it downed.*/
 // tell bot to start connection
 slackBot.startRTM();
-
 slackController.on('rtm_close', function (bot, err) {
+	console.log(bot);
     console.log('** The RTM api just closed, reason', err);
     try {
         // sometimes connection closing, so, we should restart bot
         if (bot.doNotRestart != true) {
             let token = bot.config.token;
             console.log('Trying to restart bot ' + token);
-            restartBot(bot);
+            slackBot.startRTM();
         }
     } catch (err) {
         console.error('Restart bot failed', err);
     }
 });
 
-function restartBot(bot) {
+/*function restartBot(bot) {
     bot.startRTM(function (err) {
         if (err) {
             console.error('Error restarting bot to Slack:', err);
@@ -58,7 +58,7 @@ function restartBot(bot) {
             console.log('Restarted bot for %s', token);
         }
     });
-}
+}*/
 
 //catch text message from slack
 //controller.hears(patterns, types, middleware function, callback)
@@ -124,8 +124,11 @@ slackController
 	        file: fs.createReadStream(message.source),
 	        channels: message.channel
 	    }, function (error, done) {
-	        console.log('slackServer.js fileupload'+JSON.stringify(error));
-	        console.log(JSON.stringify(done));
+	    	if(error){
+	    		console.log('slackServer.js fileupload'+JSON.stringify(error));
+	    	}else{
+	    		console.log(JSON.stringify(done));
+	    	}
 	    });
 		
 		
