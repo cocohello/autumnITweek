@@ -32,7 +32,16 @@ const slackBot = slackController.spawn({
 
 /*should add some logic restart connection when it downed.*/
 // tell bot to start connection
-slackBot.startRTM();
+slackBot.startRTM(function(err,bot,payload) {
+	  if (err) {
+		    throw new Error('Could not connect to Slack');
+		  }
+
+		  /*// close the RTM for the sake of it in 5 seconds
+		  setTimeout(function() {
+		      bot.closeRTM();
+		  }, 5000);*/
+		});
 slackController.on('rtm_close', function (bot, err) {
     console.log('** The RTM api just closed, reason', err);
     try {
@@ -40,14 +49,14 @@ slackController.on('rtm_close', function (bot, err) {
         if (bot.doNotRestart != true) {
             let token = bot.config.token;
             console.log('Trying to restart bot ' + token);
-            bot.startRTM();
+            restartBot(bot);
         }
     } catch (err) {
         console.error('Restart bot failed', err);
     }
 });
 
-/*function restartBot(bot) {
+function restartBot(bot) {
     bot.startRTM(function (err) {
         if (err) {
             console.error('Error restarting bot to Slack:', err);
@@ -56,8 +65,11 @@ slackController.on('rtm_close', function (bot, err) {
             let token = bot.config.token;
             console.log('Restarted bot for %s', token);
         }
+        /*setTimeout(function() {
+		      bot.closeRTM();
+		  }, 5000);*/
     });
-}*/
+}
 
 //catch text message from slack
 //controller.hears(patterns, types, middleware function, callback)
