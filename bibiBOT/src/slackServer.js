@@ -34,14 +34,13 @@ const slackBot = slackController.spawn({
 // tell bot to start connection
 slackBot.startRTM();
 slackController.on('rtm_close', function (bot, err) {
-	console.log(bot);
     console.log('** The RTM api just closed, reason', err);
     try {
         // sometimes connection closing, so, we should restart bot
         if (bot.doNotRestart != true) {
             let token = bot.config.token;
             console.log('Trying to restart bot ' + token);
-            slackBot.startRTM();
+            bot.startRTM();
         }
     } catch (err) {
         console.error('Restart bot failed', err);
